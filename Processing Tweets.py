@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[4]:
+# In[ ]:
 
 
 # Load stop words
@@ -14,7 +14,7 @@ with open('C:/Users/Ron/Documents/DEEEP LEARNING COMMODITY PRED/stop_words.txt')
             stop_words.add(word.replace('/n', '').strip())
 
 
-# In[5]:
+# In[ ]:
 
 
 # Remove punctuation and stem
@@ -27,7 +27,7 @@ def clean_and_stem(text, stop_words = []):
     return ' '.join([x for x in [stemmer.stem(w) for w in re.sub('['+string.punctuation+']', ' ', tmp).split(' ')] if len(x) and x not in stop_words])
 
 
-# In[28]:
+# In[ ]:
 
 
 import csv
@@ -51,14 +51,15 @@ def get_tweets(file, raw = False, stop_words = stop_words, time_interval = 'week
             if(include_nick):
                 tweetText += ' ' + row[1]
             tweet_array.insert(0, tweetText)   
-            date_array.insert(0, datetime.strptime(row[4], '%Y-%m-%d %H:%M:%S'))
+            date_array.insert(0, datetime.strptime(row[4], '%Y-%m-%d %H:%M:%S').date())
+            
             count+=1
-            #print(row[3].replace('\n', '').split('http')[0])
+            
         
         startDate = date_array[0]
         currentDate = None
-        output = []
-        
+        tweets = []
+        output = {}
         for i in range(len(date_array)):
             currentDate = date_array[i]
             if(within_time_interval(time_interval, startDate, currentDate)):
@@ -67,22 +68,28 @@ def get_tweets(file, raw = False, stop_words = stop_words, time_interval = 'week
                 else:
                     tweetIntervalString += ' '+clean_and_stem(tweet_array[i], stop_words)
             else:
-                output.append(tweetIntervalString)
+                output.update({startDate : tweetIntervalString })
                 tweetIntervalString = tweet_array[i]
-                startDate = date_array[i]   #CHANGE MADE HERE <-----------------------------
+                startDate = date_array[i]
    
-        return output
+        return output #Dictionary with key:beggining week date. and value:tweets from that week
     
 def within_time_interval(interval, startDate, currentDate):
     if(interval == 'weekly'):
-        print(currentDate.toordinal() - startDate.toordinal())
-        if(currentDate.weekday() == 6 and currentDate.toordinal() - startDate.toordinal() >= 7) or (startDate.weekday() != 6 and currentDate.weekday() == 6):
+        #print(currentDate.strftime("%U"))
+        if(currentDate.weekday() == 6 and currentDate.toordinal() - startDate.toordinal() >= 7):
+            return False
+        elif(startDate.weekday() != 6 and currentDate.weekday() == 6):
+            return False
+        elif(currentDate.strftime("%U") != startDate.strftime("%U")):
             return False
         else:
             return True
     if(interval == 'biweekly'):
-        print(currentDate.toordinal() - startDate.toordinal())
-        if(currentDate.weekday() == 6 and currentDate.toordinal() - startDate.toordinal() >= 14) or(startDate.weekday() != 6 and currentDate.weekday() == 6):
+        #print(currentDate.toordinal() - startDate.toordinal())
+        if(currentDate.weekday() == 6 and currentDate.toordinal() - startDate.toordinal() >= 14):
+            return False
+        elif(startDate.weekday() != 6 and currentDate.weekday() == 6):
             return False
         else:
             return True
@@ -93,31 +100,49 @@ def within_time_interval(interval, startDate, currentDate):
             return True
 
 
-# In[29]:
+# In[ ]:
 
 
 
 import re
 import string
-
-x = get_tweets('C:/Users/Ron/Documents/DEEEP LEARNING COMMODITY PRED/tweetDataTester.csv')
-
-
-# In[30]:
-
-
-for i in range(len(x)):
-    print(x[i] + '\n')
+#get_tweeets returns a dictionary of key:week date, value: week tweets
+x = get_tweets('C:/Users/Ron/Documents/DEEEP LEARNING COMMODITY PRED/tweetData.csv')
 
 
 # In[ ]:
 
 
-print(x)
+for key in x.keys():
+    
+    print( '\n' + x[key]+ '\n')
 
 
 # In[ ]:
 
 
+import re
+def remove_numericals(dictionary ,numeric_length):
+    tweetDict = dictionary
+    cond1=r"(\s+)\d{1,"+str(numeric_length)+r"}(\s+)"
+    cond2=r"(\s+)\d{1,"+str(numeric_length)+r"}$"
+    cond3=r"^\d{1,"+str(numeric_length)+r"}(\s+)"
+    
+    for key in tweetDict.keys():
+        val1=''
+        flag=False
+        while val1 != tweetDict[key]:
+            if flag:
+                tweetDict[key] = val1
+            val1=re.sub(cond1,r" ",tweetDict[key])
+            val1=re.sub(cond2,r"",val1)
+            val1=re.sub(cond3,r"", val1)
+            flag=True
+        
 
+
+# In[ ]:
+
+
+remove_numericals(x, 3)
 
